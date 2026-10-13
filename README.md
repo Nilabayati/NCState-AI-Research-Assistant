@@ -4,9 +4,11 @@ A demo of the **Research Design Tutor**, built with Next.js, TypeScript, Tailwin
 
 ## Public website hosting
 
+**Live website: [Research Design Assistant](https://nilabayati.github.io/NCState-AI-Research-Assistant/)**
+
 The demo can run as a static website on GitHub Pages without a running local computer, application server, AI key, or student login. The `research-design-assistant` branch contains the source; `gh-pages` contains the prepared website files.
 
-In [repository Pages settings](https://github.com/Nilabayati/NCState-AI-Research-Assistant/settings/pages), choose **Deploy from a branch**, select **gh-pages** and **/(root)**, then **Save**. Wait for GitHub to show the successful deployment and use its **Visit site** link. The expected site address after activation is `https://nilabayati.github.io/NCState-AI-Research-Assistant/`. A branch push alone does not confirm that this address is live. See [deployment instructions](docs/deployment.md), including hosting-plan requirements and verification.
+GitHub Pages is configured to publish **gh-pages → /(root)** with HTTPS enforced. The public site has passed functional and mobile browser checks. See [deployment instructions](docs/deployment.md) to publish updates, restore these settings if they change, and verify a new deployment. A future branch push must still complete GitHub's deployment before the new files are live.
 
 The public version remains a clearly labelled scripted demo. Tutoring, acknowledgement, and conversation state stay per conversation; publishing does not enable authentication or paid AI calls.
 

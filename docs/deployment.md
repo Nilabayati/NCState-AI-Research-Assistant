@@ -4,6 +4,8 @@ The current demo works entirely in the browser. GitHub Pages can serve its stati
 
 ## Activate the prepared website
 
+This repository is already configured and its [public website](https://nilabayati.github.io/NCState-AI-Research-Assistant/) has been verified. Use the steps below to restore the hosting configuration if it changes or to confirm the publishing source.
+
 1. Sign in to GitHub and open [this repository's Pages settings](https://github.com/Nilabayati/NCState-AI-Research-Assistant/settings/pages).
 2. Under **Build and deployment → Source**, select **Deploy from a branch**.
 3. Select the **gh-pages** branch and **/(root)** folder, then click **Save**.
@@ -47,6 +49,8 @@ DEPLOYMENT_BASE_URL=https://nilabayati.github.io/NCState-AI-Research-Assistant/ 
 ```
 
 Install Playwright Chromium first with `npx playwright install chromium` if needed. In the cloud workspace, use `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium` to select installed Chromium. The deployment checks start no local app server; they test the supplied site. They cover assets, exact acknowledgement and plugin downloads, demo replies, PDF/text files, conversation resets, mobile layout, and automated accessibility scans.
+
+In a cloud sandbox, Chromium needs access to its existing trusted NSS certificate database to verify the environment's HTTPS proxy. If that database is read-only, request approved filesystem access for the browser test instead of disabling certificate checks. The live checks here passed with the trusted certificate database accessible and TLS verification enabled. This is a cloud test-runner requirement; visitors do not need to install the cloud proxy certificate.
 
 ## Future authentication or AI
 
