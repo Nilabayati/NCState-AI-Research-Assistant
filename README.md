@@ -1,6 +1,14 @@
 # Research Design Assistant
 
-A local demo of the **Research Design Tutor**, built with Next.js, TypeScript, Tailwind CSS, and an NC State-inspired red, white, and gray interface. No official university logos are used, and no university affiliation or approval is implied.
+A demo of the **Research Design Tutor**, built with Next.js, TypeScript, Tailwind CSS, and an NC State-inspired red, white, and gray interface. No official university logos are used, and no university affiliation or approval is implied.
+
+## Public website hosting
+
+The demo can run as a static website on GitHub Pages without a running local computer, application server, AI key, or student login. The `research-design-assistant` branch contains the source; `gh-pages` contains the prepared website files.
+
+In [repository Pages settings](https://github.com/Nilabayati/NCState-AI-Research-Assistant/settings/pages), choose **Deploy from a branch**, select **gh-pages** and **/(root)**, then **Save**. Wait for GitHub to show the successful deployment and use its **Visit site** link. The expected site address after activation is `https://nilabayati.github.io/NCState-AI-Research-Assistant/`. A branch push alone does not confirm that this address is live. See [deployment instructions](docs/deployment.md), including hosting-plan requirements and verification.
+
+The public version remains a clearly labelled scripted demo. Tutoring, acknowledgement, and conversation state stay per conversation; publishing does not enable authentication or paid AI calls.
 
 ## Run and preview locally
 
@@ -25,7 +33,7 @@ npm ci --cache /tmp/research-design-npm-cache
 npm run dev
 ```
 
-The server binds to `0.0.0.0`, which permits port forwarding in development environments that actually provide that feature. Starting it here does not create a public URL or make it accessible through your Mac's localhost. No hosted deployment is configured.
+The server binds to `0.0.0.0`, which permits port forwarding in development environments that actually provide that feature. Starting it here does not create a public URL or make it accessible through your Mac's localhost. Use the GitHub Pages steps above for public hosting.
 
 For a local production preview, stop the development server first:
 

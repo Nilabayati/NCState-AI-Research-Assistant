@@ -14,6 +14,7 @@ import { downloadTextTranscript } from "@/lib/text-transcript";
 type Screen = "welcome" | "acknowledgement" | "tutor";
 type Message = TranscriptMessage & { id: number; offer?: boolean };
 type Modal = "instructions" | "auth" | "new" | "conditions" | null;
+const PLUGIN_SOURCE_URL = `${process.env.NEXT_PUBLIC_BASE_PATH || ""}/research-design-tutor-plugin.txt`;
 
 function transcriptMessages(current: readonly Message[]): TranscriptMessage[] {
   return current.map(({ role, content, offer }) => ({
@@ -77,7 +78,7 @@ export default function ResearchAssistant() {
   useEffect(() => {
     if (modal !== "instructions" || source) return;
     let cancelled = false;
-    fetch("/research-design-tutor-plugin.txt")
+    fetch(PLUGIN_SOURCE_URL)
       .then((response) => { if (!response.ok) throw new Error("Source unavailable"); return response.text(); })
       .then((text) => { if (!cancelled) setSource(text); })
       .catch(() => { if (!cancelled) setSource("The source could not be loaded. The verbatim copy is in docs/research-design-tutor-plugin.txt in this project."); });
@@ -294,7 +295,7 @@ export default function ResearchAssistant() {
       </div>
 
       {modal && <Dialog title={modal === "instructions" ? "Original tutor instructions" : modal === "auth" ? "About this demo" : modal === "conditions" ? "Educational conditions" : "Start a new conversation?"} onClose={() => setModal(null)}>
-        {modal === "instructions" && <><p className="dialog-intro">The uploaded plugin is preserved verbatim and remains the source of truth for tutoring behavior. This scripted demo demonstrates selected parts of the workflow; it does not implement the full reasoning of an AI tutor.</p><pre className="plugin-source" tabIndex={0} aria-label="Verbatim plugin instructions">{source || "Loading original instructions…"}</pre><a className="button-secondary source-download" href="/research-design-tutor-plugin.txt" download>Download original instructions <ArrowDownToLine size={16} /></a></>}
+        {modal === "instructions" && <><p className="dialog-intro">The uploaded plugin is preserved verbatim and remains the source of truth for tutoring behavior. This scripted demo demonstrates selected parts of the workflow; it does not implement the full reasoning of an AI tutor.</p><pre className="plugin-source" tabIndex={0} aria-label="Verbatim plugin instructions">{source || "Loading original instructions…"}</pre><a className="button-secondary source-download" href={PLUGIN_SOURCE_URL} download>Download original instructions <ArrowDownToLine size={16} /></a></>}
         {modal === "auth" && <><span className="demo-badge"><span /> DEMO MODE</span><p>This application uses local, scripted tutor responses. No paid AI calls are enabled, and no API key is needed.</p><h3>Sign in with ChatGPT</h3><p>Sign-in is planned and has not been implemented. A disabled authentication adapter is reserved for a future, officially supported integration. ChatGPT account access does not currently connect to this app.</p><p>Conversations and acknowledgement are held only in this tab&apos;s memory. A reload or new conversation clears them. PDF exports are saved to your device. This demo does not provide an institutional confidentiality guarantee.</p><div className="dialog-actions"><button className="button-secondary" onClick={() => setModal("instructions")}>Original tutor instructions <FileText size={16} /></button><button className="button-primary" onClick={() => setModal(null)}>Got it <Check size={16} /></button></div></>}
         {modal === "conditions" && <><div className="notice-copy">{ACKNOWLEDGEMENT_NOTICE}</div><p>This acknowledgement is for educational conditions, not IRB consent or research participation consent.</p><div className="dialog-actions"><button className="button-secondary" onClick={() => setModal(null)}>Close conditions</button><button className="button-secondary" onClick={withdraw}>Withdraw acknowledgement</button></div></>}
         {modal === "new" && <><p>Starting a new conversation clears the current messages and acknowledgement. You&apos;ll need to read and agree to the educational conditions again.</p>{acknowledged && <p>You can cancel and export a PDF first if you want to keep this conversation.</p>}<div className="dialog-actions"><button className="button-secondary" onClick={() => setModal(null)}>Keep this conversation</button><button className="button-primary" onClick={reset}>Start new conversation <ArrowRight size={17} /></button></div></>}

@@ -2,6 +2,8 @@
 
 ## Current local demo
 
+The demo also supports a GitHub Pages static export. `scripts/build-pages.mjs` sets the repository base path only for exported builds; `scripts/publish-pages.mjs` publishes the static files without switching the source checkout. GitHub must activate Pages, and public reachability must be checked separately. See `docs/deployment.md`.
+
 `src/app/page.tsx` renders the client application in `src/components/research-assistant.tsx`. Next.js serves the page and static assets. All conversation state is in the mounted client component; there is no database, cookie, session storage, local storage, or transcript history service. Each new conversation clears the state and starts unacknowledged. Navigating to the welcome view inside an existing conversation does not create a second conversation.
 
 The acknowledgement notice is displayed exactly. The user's requested real buttons override only the original host-specific statement about plain-text choices; they do not alter the notice or educational boundaries. Tutoring and export handlers require current-conversation acknowledgement. Withdrawal revokes it immediately. Re-agreement resumes the same conversation; new conversations always repeat the gate.
