@@ -1,0 +1,3 @@
+:HL["/NCState-AI-Research-Assistant/_next/static/chunks/1qqphloprag7p.css","style"]
+1:[["children",{"s":"__PAGE__","h":160}]]
+0:{"b":"kT6lcyaTEsc7EYn_vgX5B","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
