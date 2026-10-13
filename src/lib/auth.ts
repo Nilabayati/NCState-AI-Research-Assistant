@@ -1,4 +1,4 @@
-/** Integration boundary only. No credentials, endpoints, tokens, or sign-in requests. */
+/** Future website-auth boundary; the live flow leaves sign-in inside ChatGPT. */
 export type AuthSession = {
   user: { id: string; displayName: string };
   provider: "chatgpt";
@@ -16,6 +16,6 @@ export const chatGptAuth: AuthProvider = {
   id: "chatgpt",
   enabled: false,
   async getSession() { return null; },
-  async signIn() { throw new Error("Sign in with ChatGPT is not implemented in this demo."); },
+  async signIn() { throw new Error("Sign in with ChatGPT on this website is not implemented; use your account in ChatGPT."); },
   async signOut() {},
 };

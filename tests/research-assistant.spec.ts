@@ -24,8 +24,8 @@ async function checkAccessibility(page: Page) {
   })), null, 2)).toEqual([]);
 }
 
-async function openGate(page: Page) {
-  await page.getByRole("button", { name: "Get Started", exact: true }).click();
+async function openGate(page: Page, entry = "Try demo conversation") {
+  await page.getByRole("button", { name: entry, exact: true }).click();
   await expect(page.getByTestId("acknowledgement-notice")).toHaveText(exactNotice);
   // toHaveText normalizes whitespace, so also compare the literal DOM content.
   expect(await page.getByTestId("acknowledgement-notice").textContent()).toBe(exactNotice);
@@ -47,10 +47,155 @@ async function noHorizontalOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
 
+test("Get Started hands off the complete original tutor instructions to the student's ChatGPT", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: /Open ChatGPT/ })).toHaveCount(0);
+  await openGate(page, "Get Started");
+  await page.getByRole("button", { name: "I Disagree", exact: true }).click();
+  await expect(page.locator(".denied-message[role=alert]")).toHaveText(declined);
+  await expect(page.getByRole("link", { name: /Open ChatGPT/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "I Agree", exact: true }).click();
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+  await expect(page.getByRole("log")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Export PDF", exact: true })).toHaveCount(0);
+
+  const chatGpt = page.getByRole("link", { name: /Open ChatGPT/ });
+  await expect(chatGpt).toHaveAttribute("href", "https://chatgpt.com/");
+  await expect(chatGpt).toHaveAttribute("target", "_blank");
+  await expect(chatGpt).toHaveAttribute("rel", /noreferrer/);
+  await expect(chatGpt).toHaveAttribute("rel", /noopener/);
+  await expect(page.getByText("The real conversation takes place in ChatGPT.", { exact: true })).toBeVisible();
+  await expect(page.getByText("This website makes no paid AI API calls.", { exact: false })).toBeVisible();
+  await expect(page.getByText("Your agreement on this website does not carry into ChatGPT.", { exact: false })).toBeVisible();
+  await expect(page.getByText("This website cannot read, retrieve, or export conversations that take place in ChatGPT.", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Copy complete tutor instructions", exact: true }).click();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain(source);
+  // Any handoff framing must leave the entire source, including final whitespace, intact.
+  expect(copied.slice(copied.indexOf(source))).toBe(source);
+  await expect(page.getByRole("status")).toContainText(/copied/i);
+  await checkAccessibility(page);
+
+  await page.getByRole("button", { name: "New conversation", exact: true }).click();
+  await page.getByRole("button", { name: "Start new conversation", exact: true }).click();
+  await expect(chatGpt).toHaveCount(0);
+  await openGate(page, "Get Started");
+  await expect(page.getByRole("link", { name: /Open ChatGPT/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "I Agree", exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Get Started", exact: true })).toBeVisible();
+  await expect(chatGpt).toHaveCount(0);
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+});
+
+test("a failed clipboard handoff reports the failure and preserves the downloadable original source", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: async () => { throw new Error("Clipboard permission denied"); } },
+    });
+  });
+  await page.goto("/");
+  await openGate(page, "Get Started");
+  await page.getByRole("button", { name: "I Agree", exact: true }).click();
+  await page.getByRole("button", { name: "Copy complete tutor instructions", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText(/(?:could not|failed|unable|not copied|not allowed)/i);
+  await expect(page.getByRole("status")).not.toContainText("Instructions copied.");
+  await page.getByText("Full session instructions and manual copy", { exact: true }).click();
+  const manualInstructions = await page.getByRole("textbox", { name: "Complete ChatGPT session instructions", exact: true }).inputValue();
+  expect(manualInstructions.slice(manualInstructions.indexOf(source))).toBe(source);
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download original instructions", exact: true }).click();
+  const download = await downloadPromise;
+  expect(await download.failure()).toBeNull();
+  const filePath = await download.path();
+  expect(filePath).not.toBeNull();
+  expect(await readFile(filePath!)).toEqual(Buffer.from(source));
+});
+
+test("mobile ChatGPT handoff remains accessible and requires a fresh acknowledgement after reset", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+  await noHorizontalOverflow(page);
+  await checkAccessibility(page);
+  await openGate(page, "Get Started");
+  await noHorizontalOverflow(page);
+  await checkAccessibility(page);
+  await page.getByRole("button", { name: "I Agree", exact: true }).click();
+  await expect(page.getByRole("link", { name: /Open ChatGPT/ })).toBeVisible();
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+  await noHorizontalOverflow(page);
+  await checkAccessibility(page);
+  await page.getByRole("button", { name: "New conversation", exact: true }).click();
+  await checkAccessibility(page);
+  await page.getByRole("button", { name: "Start new conversation", exact: true }).click();
+  await openGate(page, "Get Started");
+  await expect(page.getByRole("link", { name: /Open ChatGPT/ })).toHaveCount(0);
+});
+
+test("switching between practice and ChatGPT requires a new gate and does not forward prior answers", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/");
+  await acknowledge(page);
+  const priorAnswer = "PRIVATE-PRACTICE-ANSWER-MARKER";
+  await send(page, priorAnswer);
+  await page.getByRole("button", { name: "Research Design Assistant home", exact: true }).click();
+  await page.getByRole("button", { name: "Get Started", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Start a new conversation?", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Keep this conversation", exact: true }).click();
+  await page.getByRole("button", { name: /^Your conversation/ }).click();
+  await expect(page.getByRole("log")).toContainText(priorAnswer);
+
+  await page.getByRole("button", { name: "Research Design Assistant home", exact: true }).click();
+  await page.getByRole("button", { name: "Get Started", exact: true }).click();
+  await page.getByRole("button", { name: "Start new conversation", exact: true }).click();
+  expect(await page.getByTestId("acknowledgement-notice").textContent()).toBe(exactNotice);
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Open ChatGPT/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "I Agree", exact: true }).click();
+  await page.getByRole("button", { name: "Copy complete tutor instructions", exact: true }).click();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied.slice(copied.indexOf(source))).toBe(source);
+  expect(copied).not.toContain(priorAnswer);
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Research Design Assistant home", exact: true }).click();
+  await page.getByRole("button", { name: "Try demo conversation", exact: true }).click();
+  await page.getByRole("button", { name: "Start new conversation", exact: true }).click();
+  expect(await page.getByTestId("acknowledgement-notice").textContent()).toBe(exactNotice);
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Open ChatGPT/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "I Agree", exact: true }).click();
+  await expect(page.locator(".message-content")).toHaveCount(1);
+  await expect(page.locator(".message-content")).toHaveText(firstQuestion);
+});
+
+test("unavailable original instructions disable copying and can be retried without replacing the source", async ({ page }) => {
+  let unavailable = true;
+  await page.route("**/research-design-tutor-plugin.txt", async (route) => {
+    if (unavailable) await route.fulfill({ status: 503, body: "Temporarily unavailable" });
+    else await route.continue();
+  });
+  await page.goto("/");
+  await openGate(page, "Get Started");
+  await page.getByRole("button", { name: "I Agree", exact: true }).click();
+  await expect(page.locator(".live-load-error[role=alert]")).toContainText("The original tutor instructions could not be loaded.");
+  await expect(page.getByRole("button", { name: "Copy complete tutor instructions", exact: true })).toBeDisabled();
+  await expect(page.getByText("Full session instructions and manual copy", { exact: true })).toHaveCount(0);
+  unavailable = false;
+  await page.getByRole("button", { name: "Reload tutor instructions", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Copy complete tutor instructions", exact: true })).toBeEnabled();
+  await expect(page.locator(".live-load-error[role=alert]")).toHaveCount(0);
+  await page.getByText("Full session instructions and manual copy", { exact: true }).click();
+  const restored = await page.getByRole("textbox", { name: "Complete ChatGPT session instructions", exact: true }).inputValue();
+  expect(restored.slice(restored.indexOf(source))).toBe(source);
+});
+
 test("the exact educational gate blocks tutoring until explicit agreement", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Research");
-  await expect(page.getByText("Responses are locally scripted, not generated by AI.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try demo conversation", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Your conversation/ })).toBeDisabled();
   await expect(page.getByRole("textbox")).toHaveCount(0);
   await checkAccessibility(page);
@@ -81,7 +226,7 @@ test("keyboard navigation, source instructions and dialog dismissal work", async
   await page.goto("/");
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Skip to main content", exact: true })).toBeFocused();
-  await page.getByRole("button", { name: "Get Started", exact: true }).focus();
+  await page.getByRole("button", { name: "Try demo conversation", exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Before we begin", exact: true })).toBeFocused();
   await page.getByRole("button", { name: "I Agree", exact: true }).focus();
@@ -100,9 +245,9 @@ test("keyboard navigation, source instructions and dialog dismissal work", async
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(instructionsButton).toBeFocused();
 
-  await page.getByRole("button", { name: "About this demo and sign-in", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText("Sign-in is planned and has not been implemented.");
-  await expect(page.getByRole("dialog")).toContainText("No paid AI calls are enabled, and no API key is needed.");
+  await page.getByRole("button", { name: "About tutoring and ChatGPT access", exact: true }).click();
+  await expect(page.getByRole("dialog")).toContainText("Sign-in on this website is not implemented.");
+  await expect(page.getByRole("dialog")).toContainText("No paid AI API calls are enabled by this website, and no personal API key is needed.");
   await checkAccessibility(page);
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);

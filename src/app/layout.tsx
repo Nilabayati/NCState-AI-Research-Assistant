@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Research Design Assistant | Research Design Tutor",
-  description: "An interactive research design tutor for university students. A local demo for guided questioning and critical thinking.",
+  description: "Start research-design tutoring in your own ChatGPT account with the complete original tutor instructions, or explore a clearly labelled practice conversation.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -1,5 +1,15 @@
 # Architecture and instructional fidelity
 
+## Real tutoring with students' ChatGPT accounts
+
+The primary **Get Started** flow shows the exact notice, then opens a ChatGPT starter after explicit website agreement. `src/components/chatgpt-session.tsx` loads the original file, copies a new-session prompt, offers manual-copy/download recovery, and links to official ChatGPT. `src/lib/chatgpt-handoff.ts` preserves the complete source and validates optional direct custom-GPT URLs without prompt queries or credentials. The student pastes the source into a fresh ChatGPT conversation and explicitly agrees there.
+
+Real tutoring occurs in ChatGPT. This website does not implement ChatGPT sign-in, invoke subscription-backed inference, display model replies, or retrieve history. Website agreement never carries into ChatGPT. No profile, student answer, or prior practice message is added to the starter. Account features and usage limits apply.
+
+**Try demo conversation** is secondary, with scripted replies and website transcripts. Mode changes clear website acknowledgement/messages after confirmation. Website exports cannot include responses visible only in ChatGPT; students request real transcripts there under the original host-capability instructions.
+
+Official integrations reviewed document [ChatGPT sign-in for Codex](https://github.com/openai/codex/blob/main/README.md), [Apps SDK interfaces inside ChatGPT via MCP](https://github.com/openai/openai-apps-sdk-examples/blob/main/README.md), and [OpenAI project-authorized API requests](https://github.com/openai/openai-node/blob/master/README.md). These do not supply a documented generic subscription inference API to this standalone website. A direct model integration needs supported access and an approved funding arrangement. The selected no-paid-API path is an explicit handoff, not an invented OAuth flow.
+
 ## Current local demo
 
 The demo also supports a GitHub Pages static export. `scripts/build-pages.mjs` sets the repository base path only for exported builds; `scripts/publish-pages.mjs` publishes the static files without switching the source checkout. GitHub must activate Pages, and public reachability must be checked separately. See `docs/deployment.md`.
@@ -22,7 +32,7 @@ Any institutional IRB guidance must use current official sources, with citations
 
 ## Future Sign in with ChatGPT boundary
 
-`src/lib/auth.ts` defines `AuthProvider` (`getSession`, `signIn`, `signOut`) and `AuthSession`, with the disabled `chatGptAuth` implementation. The demo does not invoke sign-in and has no authentication transport. This boundary can be replaced without coupling authentication to the educational gate.
+`src/lib/auth.ts` defines `AuthProvider` (`getSession`, `signIn`, `signOut`) and `AuthSession`, with the disabled `chatGptAuth` implementation. The website does not invoke sign-in; the external link leaves account handling inside ChatGPT. This boundary can be replaced without coupling authentication to the educational gate.
 
 Future work must verify a supported, documented Sign in with ChatGPT integration and its authorization and inference capabilities. Do not invent OAuth endpoints or assume a ChatGPT subscription supplies API access. If a supported integration exists, implement it using its official SDK and documented flow, manage sensitive session state on the server, and review the data-handling implications. Model access remains a separate decision and must not silently enable paid API calls or use the developer's personal key.
 
@@ -32,4 +42,4 @@ Authentication must never carry educational acknowledgement across conversations
 
 The interface targets WCAG 2.2 AA using semantic landmarks, labelled controls, keyboard support, native modal focus containment and trigger restoration, visible focus, sufficient text contrast, reduced-motion handling, and mobile reflow. Automated checks cover key states, alongside keyboard and layout checks. This is not a formal accessibility certification. Rasterized PDFs are complemented by readable text downloads and the accessible on-screen conversation.
 
-Conversation text is not sent to an AI or application database in this demo. Source viewing requests only the static instruction file from this app. This describes implemented behavior, not an institutional confidentiality guarantee or an assertion about all browser/platform logs. Students must still follow the exact notice and institutional requirements.
+Website practice text is not sent to an AI or application database. The starter copies only owner instructions; students then paste them and provide research descriptions directly in ChatGPT. No hidden conversation transfer is implemented. Source viewing requests only the static instruction file from this app. This describes implemented behavior, not an institutional confidentiality guarantee or an assertion about all browser/platform logs. Students must still follow the exact notice and institutional requirements.

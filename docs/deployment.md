@@ -1,6 +1,6 @@
 # Public hosting with GitHub Pages
 
-The current demo works entirely in the browser. GitHub Pages can serve its static HTML, CSS, JavaScript, and plugin instruction file over HTTPS. Visitors need only the public site address; your Mac can be turned off. This deployment does not enable AI inference, authentication, account history, or paid API calls.
+The website runs in the browser and GitHub Pages serves its static files over HTTPS. The primary flow copies the full original instructions and opens tutoring in the student's own ChatGPT account. The website enables no inference API, authentication, account history, or paid AI calls. Practice mode remains scripted; your Mac can be off while the public website is used.
 
 ## Activate the prepared website
 

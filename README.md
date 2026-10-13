@@ -1,16 +1,28 @@
 # Research Design Assistant
 
-A demo of the **Research Design Tutor**, built with Next.js, TypeScript, Tailwind CSS, and an NC State-inspired red, white, and gray interface. No official university logos are used, and no university affiliation or approval is implied.
+A **Research Design Tutor** starter for students' own ChatGPT accounts, with a separate scripted practice conversation, built with Next.js, TypeScript, Tailwind CSS, and an NC State-inspired red, white, and gray interface. No official university logos are used, and no university affiliation or approval is implied.
+
+## Start real tutoring
+
+1. Click **Get Started** and read and agree to the exact educational conditions.
+2. Click **Copy complete tutor instructions**. The entire original plugin is copied unchanged, with a short request to begin a new conversation and repeat its acknowledgement gate.
+3. Click **Open ChatGPT**, sign in there with your own account, and start a new chat.
+4. Paste the copied instructions as your first message. Read the tutor's exact notice and explicitly agree in that ChatGPT conversation before tutoring begins.
+5. Discuss your purpose and reasoning there. Request that conversation's transcript through its **Create PDF** offer when the host can generate a file.
+
+**Real responses take place in ChatGPT.** The website does not receive ChatGPT credentials, use subscription-backed inference, display ChatGPT replies, or retrieve ChatGPT history. No paid AI API calls are made. ChatGPT account features and usage limits apply. Website agreement never carries into the new ChatGPT conversation.
+
+If copying is denied, expand **Full session instructions and manual copy**, select and copy manually, or download the original file. **Try demo conversation** is a secondary practice option with clearly labelled scripted responses.
 
 ## Public website hosting
 
 **Live website: [Research Design Assistant](https://nilabayati.github.io/NCState-AI-Research-Assistant/)**
 
-The demo can run as a static website on GitHub Pages without a running local computer, application server, AI key, or student login. The `research-design-assistant` branch contains the source; `gh-pages` contains the prepared website files.
+The website runs on GitHub Pages without a local computer, application server, AI key, or website login. Students use their own ChatGPT account for real tutoring. The `research-design-assistant` branch contains the source; `gh-pages` contains the prepared website files.
 
 GitHub Pages is configured to publish **gh-pages → /(root)** with HTTPS enforced. The public site has passed functional and mobile browser checks. See [deployment instructions](docs/deployment.md) to publish updates, restore these settings if they change, and verify a new deployment. A future branch push must still complete GitHub's deployment before the new files are live.
 
-The public version remains a clearly labelled scripted demo. Tutoring, acknowledgement, and conversation state stay per conversation; publishing does not enable authentication or paid AI calls.
+The public version offers the ChatGPT session starter first and labels practice mode separately. Website acknowledgement and practice messages stay per conversation; no website authentication or paid AI API calls are enabled.
 
 ## Run and preview locally
 
@@ -48,27 +60,27 @@ Both servers use port 3000 by default. Use `npm run dev -- --port 3001` for anot
 
 ## What works
 
-- Welcome page and an exact educational acknowledgement notice, with working **I Agree** and **I Disagree** buttons.
-- The tutor is inaccessible until agreement. Disagreement or withdrawal closes tutoring. Agreement and messages live only in React memory for the current conversation: reload, a new conversation, or another tab starts unacknowledged.
-- The first question is exactly: “What is the purpose of your research—what do you hope to understand or find out?” Re-agreement after shared thinking resumes that thinking instead of repeating intake.
-- A clearly labelled, deterministic **demo tutor** asks focused questions, probes reasons behind choices, explains selected concepts, and redirects requests for completed academic work. It uses no model, API key, or paid API calls. The rules demonstrate selected behaviors; they do not provide the complete judgment or capabilities of an AI tutor.
-- Each substantive response includes the original PDF transcript offer. **No thanks** suppresses future offers for that conversation. **Create PDF** and **No thanks** also work as typed replies. The permanent PDF export remains available after dismissing offers.
-- PDFs include only the supplied current-conversation notice, agreement, chat messages, offers, and choices in their original order. Pages are rendered as images to make casual text editing difficult; PDFs can still be altered. No transcript retrieval from other chats is implemented. An accessible plain-text companion preserves the same conversation content.
-- Keyboard operation, visible focus, skip navigation, focus-managed native dialogs, live announcements, reduced-motion support, and responsive layouts.
+- Exact educational notice with working **I Agree** and **I Disagree** buttons. Disagreement blocks the session; reload/new conversation resets acknowledgement.
+- Primary ChatGPT starter preserving the complete original instructions. Its external link carries no student answer, agreement, credential, or prompt query.
+- The original tutor requires fresh agreement in ChatGPT and the exact opening purpose question. The practice tutor also demonstrates that question.
+- Separate **Try demo conversation** with focused scripted questions, reasoning probes, integrity boundaries, and exact PDF offers. These rules have limited coverage, not an AI tutor's full judgment.
+- Website PDF/text files contain only the current practice conversation. PDF pages are images and remain alterable. The website cannot export ChatGPT replies; request real transcripts there according to the original host-capability rules.
+- Mode changes require confirmation and fresh website acknowledgement. Prior practice answers are never copied into the ChatGPT starter.
+- Keyboard operation, visible focus, skip navigation, focus-managed dialogs, manual clipboard recovery, mobile reflow, and automated accessibility checks.
 
 ## The original plugin is the source of truth
 
 [`docs/research-design-tutor-plugin.txt`](docs/research-design-tutor-plugin.txt) is a byte-for-byte copy of the uploaded instructions. The same source is viewable and downloadable inside the app and is served from `public/research-design-tutor-plugin.txt`. `src/lib/plugin-copy.ts` contains the verbatim acknowledgement extracted from that source, not a paraphrase. Browser tests compare the rendered notice directly against the preserved source.
 
-The source instructions are **not replaced by generic AI instructions**. The local demo rules in `src/lib/demo-tutor.ts` intentionally have limited coverage. Any future model integration must use the complete original source and preserve its acknowledgement, reasoning-first teaching, academic-integrity, ethics, citation, and transcript requirements. See [`docs/architecture.md`](docs/architecture.md).
+The source instructions are **not replaced by generic AI instructions**. `src/lib/chatgpt-handoff.ts` includes the full original source unchanged after a short session-start request. The practice rules in `src/lib/demo-tutor.ts` intentionally have limited coverage. Any future model integration must use the complete original source and preserve its acknowledgement, reasoning-first teaching, academic-integrity, ethics, citation, and transcript requirements. See [`docs/architecture.md`](docs/architecture.md).
 
 The acknowledgement is educational conditions, **not IRB approval, research participation consent, or institutional permission to share data**. Do not enter identifying or confidential records. The demo does not guarantee institutional confidentiality or screen every possible sensitive input.
 
-## Authentication and AI are deliberately disabled
+## ChatGPT access and website authentication
 
-`src/lib/auth.ts` defines a replaceable `AuthProvider` boundary and a disabled `chatGptAuth` adapter. It returns no session and throws on sign-in. No OAuth endpoints, tokens, credentials, login routes, or AI requests are implemented. The UI explains that Sign in with ChatGPT is planned.
+Students sign in on the official ChatGPT site, not this website. `src/lib/auth.ts` retains a disabled future website-auth boundary; no OAuth endpoints, tokens, login routes, or inference requests are implemented. A ChatGPT subscription is not treated as an API credential for this site. No personal OpenAI key is requested, read, or used.
 
-A future integration must first verify that an officially supported Sign in with ChatGPT mechanism is available for this application. A ChatGPT account or subscription must not be assumed to supply an API credential or inference entitlement. No personal OpenAI API key is requested, read, or used.
+The default is a fresh ChatGPT conversation. An optional build setting `NEXT_PUBLIC_CHATGPT_TUTOR_URL` can use an owner-provided direct HTTPS `chatgpt.com/g/g-...` tutor URL. Other hosts, credentials, prompt queries, and invalid links fall back safely to official ChatGPT home. See the integration rationale in [architecture.md](docs/architecture.md).
 
 ## Development checks
 
@@ -79,7 +91,7 @@ npm test
 npm run build
 ```
 
-Browser checks cover the acknowledgement gates, resets, keyboard navigation, demo reasoning, offer suppression, actual PDF download and exact canvas rendering, mobile reflow, and automated WCAG A/AA scans:
+Browser checks cover the real-session starter and exact clipboard source, copy/source failures and retry, mode changes, fresh gates, keyboard operation, practice reasoning, PDF/text files, mobile reflow, and automated WCAG A/AA scans. They validate the handoff, not authenticated ChatGPT responses:
 
 ```bash
 # If Playwright Chromium is not already installed:

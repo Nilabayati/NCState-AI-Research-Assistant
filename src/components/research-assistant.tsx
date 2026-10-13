@@ -10,8 +10,10 @@ import { FIRST_QUESTION, getDemoReply } from "@/lib/demo-tutor";
 import { ACKNOWLEDGEMENT_NOTICE, DECLINED_MESSAGE, TRANSCRIPT_OFFER } from "@/lib/plugin-copy";
 import type { TranscriptMessage } from "@/lib/transcript";
 import { downloadTextTranscript } from "@/lib/text-transcript";
+import ChatGptSession from "@/components/chatgpt-session";
 
-type Screen = "welcome" | "acknowledgement" | "tutor";
+type Screen = "welcome" | "acknowledgement" | "tutor" | "chatgpt";
+type TutorMode = "chatgpt" | "demo";
 type Message = TranscriptMessage & { id: number; offer?: boolean };
 type Modal = "instructions" | "auth" | "new" | "conditions" | null;
 const PLUGIN_SOURCE_URL = `${process.env.NEXT_PUBLIC_BASE_PATH || ""}/research-design-tutor-plugin.txt`;
@@ -48,6 +50,8 @@ function Mark({ small = false }: { small?: boolean }) {
 
 export default function ResearchAssistant() {
   const [screen, setScreen] = useState<Screen>("welcome");
+  const [mode, setMode] = useState<TutorMode>("chatgpt");
+  const [pendingMode, setPendingMode] = useState<TutorMode | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const [denied, setDenied] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -89,8 +93,11 @@ export default function ResearchAssistant() {
     return { id: nextId.current++, role, content, offer };
   }
 
-  function begin() {
-    if (acknowledged) { setScreen("tutor"); return; }
+  function begin(targetMode: TutorMode = mode) {
+    if (targetMode !== mode) {
+      if (messages.length > 0) { setPendingMode(targetMode); setModal("new"); return; }
+      setMode(targetMode);
+    } else if (acknowledged) { setScreen(mode === "chatgpt" ? "chatgpt" : "tutor"); return; }
     if (messages.length === 0) {
       conversationGeneration.current += 1;
       setConversationId(crypto.randomUUID());
@@ -107,8 +114,8 @@ export default function ResearchAssistant() {
     const question = hasPriorThinking
       ? "We can pick up your earlier thinking. What would you like to clarify or confirm about your research purpose?"
       : FIRST_QUESTION;
-    setMessages((current) => [...current, message("student", "I Agree"), message("tutor", question, !offersDismissed)]);
-    setScreen("tutor");
+    setMessages((current) => [...current, message("student", "I Agree"), ...(mode === "demo" ? [message("tutor", question, !offersDismissed)] : [])]);
+    setScreen(mode === "chatgpt" ? "chatgpt" : "tutor");
   }
 
   function disagree() {
@@ -125,9 +132,12 @@ export default function ResearchAssistant() {
     setScreen("acknowledgement");
   }
 
-  function reset() {
+  function reset(targetMode: TutorMode = mode, showGate = false) {
     conversationGeneration.current += 1;
-    setMessages([]);
+    setMode(targetMode);
+    setPendingMode(null);
+    setConversationId(crypto.randomUUID());
+    setMessages(showGate ? [message("notice", ACKNOWLEDGEMENT_NOTICE)] : []);
     setAcknowledged(false);
     setDenied(false);
     setOffersDismissed(false);
@@ -136,7 +146,7 @@ export default function ResearchAssistant() {
     setExportStatus("");
     setBoundaryStatus("");
     setModal(null);
-    setScreen("welcome");
+    setScreen(showGate ? "acknowledgement" : "welcome");
   }
 
   function declineOffer(choiceContent = "No thanks") {
@@ -217,21 +227,21 @@ export default function ResearchAssistant() {
         <nav aria-label="Conversation steps">
           <button className={`nav-item ${screen === "welcome" ? "active" : ""}`} onClick={() => setScreen("welcome")} aria-current={screen === "welcome" ? "page" : undefined}><BookOpen size={19} /><span>Welcome</span>{screen === "welcome" && <span className="active-dot" />}</button>
           <button className={`nav-item ${screen === "acknowledgement" ? "active" : ""}`} onClick={() => acknowledged ? setModal("conditions") : begin()} aria-current={screen === "acknowledgement" ? "step" : undefined}><ShieldCheck size={19} /><span>Before you begin</span>{acknowledged && <Check size={15} className="nav-check" />}</button>
-          <button className={`nav-item ${screen === "tutor" ? "active" : ""}`} disabled={!acknowledged} onClick={() => setScreen("tutor")} aria-current={screen === "tutor" ? "page" : undefined}><MessageSquare size={19} /><span>Your conversation</span>{!acknowledged && <span className="nav-lock">—</span>}</button>
+          <button className={`nav-item ${screen === "tutor" || screen === "chatgpt" ? "active" : ""}`} disabled={!acknowledged} onClick={() => setScreen(mode === "chatgpt" ? "chatgpt" : "tutor")} aria-current={screen === "tutor" || screen === "chatgpt" ? "page" : undefined}><MessageSquare size={19} /><span>Your conversation</span>{!acknowledged && <span className="nav-lock">—</span>}</button>
         </nav>
         <div className="sidebar-separator" />
-        <button className="new-conversation" onClick={() => messages.length ? setModal("new") : reset()}><Plus size={18} /> New conversation</button>
+        <button className="new-conversation" onClick={() => { setPendingMode(null); if (messages.length) setModal("new"); else reset(); }}><Plus size={18} /> New conversation</button>
         <div className="sidebar-bottom">
           <div className="learning-note"><span className="note-icon"><Lightbulb size={18} /></span><p>Better questions.<br /><strong>More confident thinking.</strong></p></div>
           <button className="source-link" onClick={() => setModal("instructions")}><FileText size={16} /> Original tutor instructions<ArrowRight size={14} /></button>
-          <button className="guest-profile" onClick={() => setModal("auth")}><span className="guest-avatar"><GraduationCap size={20} /></span><span>Guest learner<small>Sign-in planned</small></span><ChevronRight size={16} /></button>
+          <button className="guest-profile" onClick={() => setModal("auth")}><span className="guest-avatar"><GraduationCap size={20} /></span><span>Guest learner<small>{mode === "chatgpt" ? "Use your ChatGPT account" : "Practice mode"}</small></span><ChevronRight size={16} /></button>
         </div>
       </aside>
 
       <div className="workspace">
         <header className="topbar">
-          <div className="breadcrumb"><span className="mobile-brand"><Mark small /></span><span>Research Design Assistant</span><ChevronRight size={14} /><span className="breadcrumb-current">{screen === "welcome" ? "Welcome" : screen === "acknowledgement" ? "Before you begin" : "Conversation"}</span></div>
-          <div className="topbar-actions"><span className="demo-badge"><span /> DEMO MODE</span><button className="icon-button mobile-new" aria-label="New conversation" onClick={() => messages.length ? setModal("new") : reset()}><Plus size={20} /></button><button className="icon-button" aria-label="About this demo and sign-in" onClick={() => setModal("auth")}><CircleHelp size={19} /></button></div>
+          <div className="breadcrumb"><span className="mobile-brand"><Mark small /></span><span>Research Design Assistant</span><ChevronRight size={14} /><span className="breadcrumb-current">{screen === "welcome" ? "Welcome" : screen === "acknowledgement" ? "Before you begin" : screen === "chatgpt" ? "ChatGPT session" : "Conversation"}</span></div>
+          <div className="topbar-actions"><span className="demo-badge"><span /> {mode === "chatgpt" ? "CHATGPT WORKFLOW" : "DEMO MODE"}</span><button className="icon-button mobile-new" aria-label="New conversation" onClick={() => { setPendingMode(null); if (messages.length) setModal("new"); else reset(); }}><Plus size={20} /></button><button className="icon-button" aria-label="About tutoring and ChatGPT access" onClick={() => setModal("auth")}><CircleHelp size={19} /></button></div>
         </header>
 
         <main id="main-content" className={`main-content ${screen === "tutor" ? "chat-main" : ""}`}>
@@ -243,7 +253,7 @@ export default function ResearchAssistant() {
                   <div className="eyebrow">GUIDED LEARNING · YOUR OWN REASONING</div>
                   <h1 id="welcome-title" ref={heading} tabIndex={-1} aria-label="Research Design Tutor">Research<br />Design Tutor<span className="red-period" aria-hidden="true">.</span></h1>
                   <p className="hero-description">An interactive AI tutor that helps university students develop research design skills through guided questioning and critical thinking.</p>
-                  <button className="button-primary hero-button" onClick={begin}>Get Started <ArrowRight size={19} /></button>
+                  <div className="hero-start-actions"><button className="button-primary hero-button" onClick={() => begin("chatgpt")}>Get Started <ArrowRight size={19} /></button><button className="hero-demo-button" onClick={() => begin("demo")}>Try demo conversation</button></div>
                   <p className="hero-footnote"><ShieldCheck size={15} /> Acknowledgement required before you begin</p>
                 </div>
                 <div className="hero-visual" aria-label="An illustration of a thoughtful learning process">
@@ -258,9 +268,9 @@ export default function ResearchAssistant() {
               <section className="approach-section" aria-labelledby="approach-title"><div className="section-heading"><h2 id="approach-title">A thoughtful approach to research</h2><span>How we&apos;ll work together</span></div><div className="feature-grid">
                 <article className="feature-card"><span className="feature-icon"><MessageSquare size={21} /></span><span className="feature-number">01</span><h3>A conversation, not a checklist</h3><p>Work through one or two focused questions at a time, with room to reflect.</p></article>
                 <article className="feature-card"><span className="feature-icon"><Lightbulb size={21} /></span><span className="feature-number">02</span><h3>Guidance, not ready-made answers</h3><p>Build your reasoning. Major research decisions remain yours to make.</p></article>
-                <article className="feature-card"><span className="feature-icon"><FileText size={21} /></span><span className="feature-number">03</span><h3>Take your thinking with you</h3><p>Download a PDF of your current conversation to revisit your learning.</p></article>
+                <article className="feature-card"><span className="feature-icon"><FileText size={21} /></span><span className="feature-number">03</span><h3>Take your thinking with you</h3><p>Request your current conversation transcript in the host where tutoring takes place.</p></article>
               </div></section>
-              <div className="welcome-demo-note"><span className="demo-note-icon"><Sparkles size={17} /></span><p><strong>You&apos;re exploring a demo.</strong> Responses are locally scripted, not generated by AI. No sign-in or paid AI calls.</p></div>
+              <div className="welcome-demo-note"><span className="demo-note-icon"><Sparkles size={17} /></span><p><strong>Real tutoring uses your ChatGPT account.</strong> Copy the full original instructions and start a new chat there. The website also offers a scripted practice conversation. No paid AI API calls.</p></div>
               <footer className="page-footer"><span>Designed for learning. Grounded in your reasoning.</span><button onClick={() => setModal("instructions")}>Read the tutor instructions <ArrowRight size={14} /></button></footer>
             </div>
           )}
@@ -271,6 +281,8 @@ export default function ResearchAssistant() {
               <p className="ack-scope"><ShieldCheck size={16} /> This acknowledgement applies only to this conversation. It is not IRB consent or research participation consent.</p><button className="text-button" onClick={() => setScreen("welcome")}>Back to welcome</button>
             </div>
           )}
+
+          {screen === "chatgpt" && acknowledged && <ChatGptSession sourceUrl={PLUGIN_SOURCE_URL} headingRef={heading} />}
 
           {screen === "tutor" && acknowledged && (
             <div className="tutor-layout"><section className="conversation-column" aria-label="Research design conversation"><div className="conversation-heading"><div><div className="eyebrow">YOUR LEARNING CONVERSATION</div><h1 ref={heading} tabIndex={-1}>Your research, your reasoning.</h1></div><button className="button-secondary export-button" disabled={exporting} onClick={() => void exportPdf()}><ArrowDownToLine size={17} /><span>{exporting ? "Creating PDF…" : "Export PDF"}</span></button></div>
@@ -294,11 +306,11 @@ export default function ResearchAssistant() {
         </main>
       </div>
 
-      {modal && <Dialog title={modal === "instructions" ? "Original tutor instructions" : modal === "auth" ? "About this demo" : modal === "conditions" ? "Educational conditions" : "Start a new conversation?"} onClose={() => setModal(null)}>
-        {modal === "instructions" && <><p className="dialog-intro">The uploaded plugin is preserved verbatim and remains the source of truth for tutoring behavior. This scripted demo demonstrates selected parts of the workflow; it does not implement the full reasoning of an AI tutor.</p><pre className="plugin-source" tabIndex={0} aria-label="Verbatim plugin instructions">{source || "Loading original instructions…"}</pre><a className="button-secondary source-download" href={PLUGIN_SOURCE_URL} download>Download original instructions <ArrowDownToLine size={16} /></a></>}
-        {modal === "auth" && <><span className="demo-badge"><span /> DEMO MODE</span><p>This application uses local, scripted tutor responses. No paid AI calls are enabled, and no API key is needed.</p><h3>Sign in with ChatGPT</h3><p>Sign-in is planned and has not been implemented. A disabled authentication adapter is reserved for a future, officially supported integration. ChatGPT account access does not currently connect to this app.</p><p>Conversations and acknowledgement are held only in this tab&apos;s memory. A reload or new conversation clears them. PDF exports are saved to your device. This demo does not provide an institutional confidentiality guarantee.</p><div className="dialog-actions"><button className="button-secondary" onClick={() => setModal("instructions")}>Original tutor instructions <FileText size={16} /></button><button className="button-primary" onClick={() => setModal(null)}>Got it <Check size={16} /></button></div></>}
+      {modal && <Dialog title={modal === "instructions" ? "Original tutor instructions" : modal === "auth" ? "Tutoring and ChatGPT access" : modal === "conditions" ? "Educational conditions" : "Start a new conversation?"} onClose={() => { setPendingMode(null); setModal(null); }}>
+        {modal === "instructions" && <><p className="dialog-intro">The uploaded plugin is preserved verbatim and remains the source of truth for tutoring behavior. Copy the complete source into your real ChatGPT session. The separate website practice conversation uses limited scripted responses.</p><pre className="plugin-source" tabIndex={0} aria-label="Verbatim plugin instructions">{source || "Loading original instructions…"}</pre><a className="button-secondary source-download" href={PLUGIN_SOURCE_URL} download>Download original instructions <ArrowDownToLine size={16} /></a></>}
+        {modal === "auth" && <><span className="demo-badge"><span /> CHATGPT WORKFLOW</span><p>Real tutoring takes place in ChatGPT using the student&apos;s own account and the complete original tutor instructions. No paid AI API calls are enabled by this website, and no personal API key is needed.</p><h3>Your account stays in ChatGPT</h3><p>This website does not sign you in to ChatGPT, receive your login credentials, or use your subscription to generate replies here. Sign-in on this website is not implemented. ChatGPT handles account access, features, and usage limits in its own interface.</p><p>Website acknowledgement and practice messages stay only in this tab&apos;s memory. A ChatGPT session is a separate conversation with its own acknowledgement and transcript. This website cannot retrieve those messages or provide an institutional confidentiality guarantee.</p><div className="dialog-actions"><button className="button-secondary" onClick={() => setModal("instructions")}>Original tutor instructions <FileText size={16} /></button><button className="button-primary" onClick={() => setModal(null)}>Got it <Check size={16} /></button></div></>}
         {modal === "conditions" && <><div className="notice-copy">{ACKNOWLEDGEMENT_NOTICE}</div><p>This acknowledgement is for educational conditions, not IRB consent or research participation consent.</p><div className="dialog-actions"><button className="button-secondary" onClick={() => setModal(null)}>Close conditions</button><button className="button-secondary" onClick={withdraw}>Withdraw acknowledgement</button></div></>}
-        {modal === "new" && <><p>Starting a new conversation clears the current messages and acknowledgement. You&apos;ll need to read and agree to the educational conditions again.</p>{acknowledged && <p>You can cancel and export a PDF first if you want to keep this conversation.</p>}<div className="dialog-actions"><button className="button-secondary" onClick={() => setModal(null)}>Keep this conversation</button><button className="button-primary" onClick={reset}>Start new conversation <ArrowRight size={17} /></button></div></>}
+        {modal === "new" && <><p>Starting a new conversation clears the current website messages and acknowledgement. You&apos;ll need to read and agree to the educational conditions again.</p>{acknowledged && mode === "demo" && <p>You can cancel and export a PDF first if you want to keep this conversation.</p>}{mode === "chatgpt" && <p>This action does not clear or export a separate ChatGPT conversation.</p>}<div className="dialog-actions"><button className="button-secondary" onClick={() => { setPendingMode(null); setModal(null); }}>Keep this conversation</button><button className="button-primary" onClick={() => reset(pendingMode || mode, pendingMode !== null)}>Start new conversation <ArrowRight size={17} /></button></div></>}
       </Dialog>}
     </div>
   );

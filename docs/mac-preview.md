@@ -53,4 +53,4 @@ Check Terminal first:
 - The Terminal window is closed or the server was stopped: run `npm run dev` again and leave it running.
 - The server prints port 3001 or another port: use that address in Chrome.
 
-The demo uses local scripted tutor responses. No ChatGPT login, personal OpenAI API key, or paid AI call is needed to preview it.
+The main flow starts tutoring in the student's own ChatGPT account with the full original instructions. Practice mode stays scripted. No personal API key or paid API call is needed to preview the website; real tutoring uses sign-in inside ChatGPT.
